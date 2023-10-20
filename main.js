@@ -4,11 +4,15 @@ document.addEventListener("DOMContentLoaded", () => {
     const addressDisplay = document.getElementById("addressDisplay");
     const cinemaList = document.getElementById("cinemaList");
     const geolocateButton = document.getElementById("geolocateButton");
+    let latitude;
+    let longitude;
+
 
     const getGeolocation = () => {
         if (navigator.geolocation) {
             navigator.geolocation.getCurrentPosition((position) => {
-                const { latitude, longitude } = position.coords;
+                latitude = position.coords.latitude;
+                longitude = position.coords.longitude;
                 const coordinates = `${latitude}, ${longitude}`;
                 addressInput.value = coordinates;
                 getAddressFromCoordinates(longitude, latitude);
@@ -33,11 +37,26 @@ document.addEventListener("DOMContentLoaded", () => {
     geolocateButton.addEventListener("click", getGeolocation);
     searchForm.addEventListener("submit", (e) => {
         e.preventDefault();
-        
-        // Appeler une fonction pour obtenir les coordonnées GPS à partir de l'adresse
-        // Utilisez une API similaire à l'API Adresse
-        // Ensuite, appelez une fonction pour obtenir la liste des cinémas en fonction des coordonnées
-        // Remarque : ceci est une étape complexe et dépend de l'API que vous utilisez
-        // Vous devez gérer les erreurs et les détails de l'API réelle ici.
+        const radius = 10;
+        const coordinates = `POINT(${longitude}%20${latitude})`;
+
+    const cineUrl = `/api/explore/v2.1/catalog/datasets/etablissements-cinematographiques/records?where=within_distance(geolocalisation%2C%20geom'${coordinates}'%2C%20${radius}km)&limit=20`;
+
+    fetch(cineUrl)
+    .then((response) => response.json())
+    .then((data) => {
+        cinemaList.innerHTML = "";
+        data.records.forEach((cinema) => {
+            const cinemaName = cinema.results.nom;
+            const cinemaAddress = cinema.results.adresse;
+            const cinemaCity = cinema.results.commune;
+            const cinemaElement = document.createElement("div");
+            cinemaElement.textContent = `Nom : ${cinemaName}, Adresse : ${cinemaAddress}, Ville : ${cinemaCity}`;
+            cinemaList.appendChild(cinemaElement);
+    });
+  })
+  .catch((error) => {
+    console.error("Erreur lors de la récupération des cinémas :", error);
+  });
     });
 });
